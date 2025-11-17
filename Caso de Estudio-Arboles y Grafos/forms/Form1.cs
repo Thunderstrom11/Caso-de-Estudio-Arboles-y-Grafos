@@ -12,6 +12,7 @@ namespace Caso_de_Estudio_Arboles_y_Grafos
 {
     public partial class Form1 : Form
     {
+        private List<TreeNode> nodosRecorridos = new List<TreeNode>(); /// Lista para almacenar los nodos resaltados
         public Form1()
         {
             InitializeComponent();
@@ -48,7 +49,12 @@ namespace Caso_de_Estudio_Arboles_y_Grafos
 
         private void tvArbol_DrawNode(object sender, DrawTreeNodeEventArgs e)
         {
-            if (e.Node == tvArbol.SelectedNode)
+            if (nodosRecorridos.Contains(e.Node))
+            {
+                e.Graphics.FillRectangle(Brushes.LightGoldenrodYellow, e.Bounds);
+                TextRenderer.DrawText(e.Graphics, e.Node.Text, tvArbol.Font, e.Bounds, Color.Black, TextFormatFlags.Default);
+            }
+            else if (e.Node == tvArbol.SelectedNode)
             {
                 e.Graphics.FillRectangle(Brushes.Blue, e.Bounds);
                 TextRenderer.DrawText(e.Graphics, e.Node.Text, tvArbol.Font, e.Bounds, Color.White, TextFormatFlags.Default);
@@ -60,6 +66,15 @@ namespace Caso_de_Estudio_Arboles_y_Grafos
 
         }
 
+        private void LimpiarResultados()
+        {
+            lstbResultados.Items.Clear();
+
+            nodosRecorridos.Clear();
+
+            tvArbol.Invalidate();  ///forzar el redibujado del TreeView
+        }
+
         private void btnborrar_Click(object sender, EventArgs e)
         {
             if (tvArbol.SelectedNode != null)
@@ -68,6 +83,105 @@ namespace Caso_de_Estudio_Arboles_y_Grafos
             }
 
         }
+
+        private async Task VisitarNodo(TreeNode nodo)
+        {
+            nodosRecorridos.Add(nodo);
+
+            lstbResultados.Items.Add(nodo.Text);
+
+            tvArbol.Invalidate(); // Forzar el redibujado del TreeView para actualizar el resaltado
+
+            await Task.Delay(500); // Pausa de 500 ms para visualización
+        }
+
+        private async Task RecorrerPreOrden(TreeNode nodo)
+        {
+            if (nodo == null) return;
+            await VisitarNodo(nodo);
+            foreach (TreeNode hijo in nodo.Nodes)
+            {
+                await RecorrerPreOrden(hijo);
+            }
+        }
+
+        private async Task RecorrerInOrden(TreeNode nodo)
+        {
+            if (nodo == null) return;
+
+            if (nodo.Nodes.Count > 0)
+            {
+                await RecorrerInOrden(nodo.Nodes[0]);
+            }
+            await VisitarNodo(nodo);
+            for (int i = 1; i < nodo.Nodes.Count; i++)
+            {
+                await RecorrerInOrden(nodo.Nodes[i]);
+            }
+        }
+
+
+
+        private async Task RecorrerPostOrden(TreeNode nodo)
+        {
+            if (nodo == null) return;
+            foreach (TreeNode hijo in nodo.Nodes)
+            {
+                await RecorrerPostOrden(hijo);
+            }
+            await VisitarNodo(nodo);
+        }
+
+
+
+        private async void btnRecPreorden_Click(object sender, EventArgs e)
+        {
+            LimpiarResultados();
+            TreeNode nodoInicio = tvArbol.SelectedNode;
+
+            if (nodoInicio != null)
+            {
+                await RecorrerPreOrden(nodoInicio);
+            }
+            else
+            {
+                MessageBox.Show("Por favor, seleccione un nodo para iniciar el recorrido.", "Nodo no seleccionado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+        }
+
+        private async void btnRecInOrden_Click(object sender, EventArgs e)
+        {
+            LimpiarResultados();
+            TreeNode nodoInicio = tvArbol.SelectedNode;
+
+            if (nodoInicio != null)
+            {
+                await RecorrerInOrden(nodoInicio);
+            }
+            else
+            {
+                MessageBox.Show("Por favor, seleccione un nodo para iniciar el recorrido.", "Nodo no seleccionado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+        }
+
+        private async void btnPostOrden_Click(object sender, EventArgs e)
+        {
+            LimpiarResultados();
+            TreeNode nodoInicio = tvArbol.SelectedNode;
+
+            if (nodoInicio != null)
+            {
+                await RecorrerPostOrden(nodoInicio);
+            }
+            else
+            {
+                MessageBox.Show("Por favor, seleccione un nodo para iniciar el recorrido.", "Nodo no seleccionado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+
+            }
+        }
+
     }
-    
 }
+    
