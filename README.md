@@ -43,4 +43,5 @@ El software está diseñado para el parque tecnológico "Innovatec" y aborda dos
 
 ## 5. Autor
 
+*   **[Diego Marcello Chamendy Chow]**
 *   **[dmchamendy@uamv.edu.ni]**
