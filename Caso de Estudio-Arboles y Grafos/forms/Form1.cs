@@ -11,9 +11,6 @@ using System.Windows.Forms;
 namespace Caso_de_Estudio_Arboles_y_Grafos
 {
     public partial class Form1 : Form
-
-
-       /// Lista para almacenar los nodos resaltados
     {
         private List<TreeNode> nodosRecorridos = new List<TreeNode>(); /// Lista para almacenar los nodos resaltados
         public Form1()
@@ -69,7 +66,7 @@ namespace Caso_de_Estudio_Arboles_y_Grafos
 
             nodosRecorridos.Clear();
 
-            tvArbol.Invalidate();  ///forzar el redibujado del TreeView
+            tvArbol.Invalidate();  //forzar el redibujado del TreeView
         }
 
         private void btnborrar_Click(object sender, EventArgs e)
@@ -87,9 +84,9 @@ namespace Caso_de_Estudio_Arboles_y_Grafos
 
             lstbResultados.Items.Add(nodo.Text);
 
-            tvArbol.Invalidate(); // Forzar el redibujado del TreeView para actualizar el resaltado
+            tvArbol.Invalidate(); // Forzar el redibujado del TreeView 
 
-            await Task.Delay(500); // Pausa de 500 ms para visualización
+            await Task.Delay(500); // Pausa para visualización
         }
 
         private async Task RecorrerPreOrden(TreeNode nodo)
@@ -239,11 +236,221 @@ namespace Caso_de_Estudio_Arboles_y_Grafos
 
 
         ///Pagina Ruta
-        
+
+        private Grafo parqueTecnologico = new Grafo();
+        // Diccionario para guardar las coordenadas de cada edificio 
+        private Dictionary<string, Point> posicionesVertices = new Dictionary<string, Point>();
+        // Lista para guardar el camino a resaltar
+        private List<string> rutaResaltada = new List<string>();
+        private Random random = new Random();
+
+
+        private void btnAgregarEdificio_Click(object sender, EventArgs e)
+        {
+            string nombreEdificio = tbEdificio.Text;
+            if (string.IsNullOrEmpty(nombreEdificio))
+            {
+                MessageBox.Show("Por favor, ingrese un nombre para el edificio.", "Entrada vacía", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (posicionesVertices.ContainsKey(nombreEdificio))
+            {
+                MessageBox.Show("Ya existe un edificio con ese nombre.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            
+            parqueTecnologico.AgregarVertice(nombreEdificio);
+
+            //Añadir una posición aleatoria en el mapa
+            int margen = 30;
+            int x = random.Next(margen, pbGrafo.Width - margen);
+            int y = random.Next(margen, pbGrafo.Height - margen);
+            posicionesVertices[nombreEdificio] = new Point(x, y);
+
+            ActualizarComboBoxesEdificios();
+            tbEdificio.Clear();
+            pbGrafo.Refresh(); // Fuerza el redibujado del PictureBox
+        }
+
+
+        private void btnCalcularRuta_Click(object sender, EventArgs e)
+        {
+            if (cmbRutaInicio.SelectedItem == null || cmbRutaFin.SelectedItem == null)
+            {
+                MessageBox.Show("Seleccione un inicio y fin para la ruta.", "Datos incompletos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string inicio = cmbRutaInicio.SelectedItem.ToString();
+            string fin = cmbRutaFin.SelectedItem.ToString();
+
+            var resultado = parqueTecnologico.EncontrarRutaMasCorta_Dijkstra(inicio, fin);
+            rutaResaltada = resultado.Item1; // Guarda el camino para resaltarlo en el dibujo
+            int distanciaTotal = resultado.Item2;
+
+            lstbResultadosGrafo.Items.Clear();
+
+            if (distanciaTotal != -1 && rutaResaltada.Count > 0)
+            {
+                lstbResultadosGrafo.Items.Add("--- Ruta Más Corta Encontrada ---");
+                lstbResultadosGrafo.Items.Add($"Distancia total: {distanciaTotal} metros.");
+                lstbResultadosGrafo.Items.Add("Camino: " + string.Join(" -> ", rutaResaltada));
+            }
+            else
+            {
+                rutaResaltada.Clear(); // Limpia la ruta si no se encontró
+                lstbResultadosGrafo.Items.Add("No se encontró una ruta entre los edificios seleccionados.");
+            }
+
+            pbGrafo.Refresh(); 
+        }
 
 
 
+        private void pbGrafo_Paint(object sender, PaintEventArgs e)
+        {
+            e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            var g = e.Graphics;
+            g.Clear(Color.White); 
 
+            Pen penAristaNormal = new Pen(Color.SlateGray, 2);
+            Pen penAristaResaltada = new Pen(Color.LimeGreen, 4);
+            SolidBrush brushVerticeNormal = new SolidBrush(Color.SkyBlue);
+            SolidBrush brushVerticeResaltado = new SolidBrush(Color.LimeGreen);
+            Font fuenteNormal = new Font("Arial", 9, FontStyle.Bold);
+            Font fuentePeso = new Font("Arial", 8);
+            StringFormat formatoCentro = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+            int radioVertice = 22;
+
+            var listaAdy = parqueTecnologico.ObtenerListaAdyacencia();
+
+            // 1. DIBUJAR LAS LÍNEAS
+            foreach (var origen in listaAdy)
+            {
+                Point p1 = posicionesVertices[origen.Key];
+                foreach (var arista in origen.Value)
+                {
+                    Point p2 = posicionesVertices[arista.Destino];
+                    bool esParteDeRuta = EsAristaEnRuta(origen.Key, arista.Destino, rutaResaltada);
+
+ 
+                    g.DrawLine(esParteDeRuta ? penAristaResaltada : penAristaNormal, p1, p2);
+
+
+                    Point puntoMedio = new Point((p1.X + p2.X) / 2, (p1.Y + p2.Y) / 2);
+                    g.FillRectangle(Brushes.White, new Rectangle(puntoMedio.X - 10, puntoMedio.Y - 7, 20, 14));
+                    g.DrawString(arista.Peso.ToString(), fuentePeso, Brushes.Black, puntoMedio, formatoCentro);
+                }
+            }
+
+            // 2. DIBUJAR LOS CÍRCULOS
+            foreach (var vertice in posicionesVertices)
+            {
+                Rectangle rect = new Rectangle(vertice.Value.X - radioVertice, vertice.Value.Y - radioVertice, radioVertice * 2, radioVertice * 2);
+                bool esParteDeRuta = rutaResaltada.Contains(vertice.Key);
+
+
+                g.FillEllipse(esParteDeRuta ? brushVerticeResaltado : brushVerticeNormal, rect);
+                g.DrawEllipse(Pens.Black, rect);
+
+
+                g.DrawString(vertice.Key, fuenteNormal, Brushes.Black, vertice.Value, formatoCentro);
+            }
+        }
+
+
+
+        private void ActualizarComboBoxesEdificios()
+        {
+            List<string> edificios = parqueTecnologico.ObtenerVertices();
+            cmbOrigen.DataSource = new List<string>(edificios);
+            cmbDestino.DataSource = new List<string>(edificios);
+            cmbRutaInicio.DataSource = new List<string>(edificios);
+            cmbRutaFin.DataSource = new List<string>(edificios);
+        }
+
+        private bool EsAristaEnRuta(string u, string v, List<string> ruta)
+        {
+            for (int i = 0; i < ruta.Count - 1; i++)
+            {
+                if ((ruta[i] == u && ruta[i + 1] == v) || (ruta[i] == v && ruta[i + 1] == u))
+                    return true;
+            }
+            return false;
+        }
+
+        private void btnCrearRuta_Click(object sender, EventArgs e)
+        {
+            if (cmbOrigen.SelectedItem == null || cmbDestino.SelectedItem == null)
+            {
+                MessageBox.Show("Seleccione un edificio de origen y destino.", "Datos incompletos", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string origen = cmbOrigen.SelectedItem.ToString();
+            string destino = cmbDestino.SelectedItem.ToString();
+
+            if (!int.TryParse(tbDistancia.Text, out int distancia) || distancia <= 0)
+            {
+                MessageBox.Show("Por favor, ingrese una distancia numérica válida y mayor que cero.", "Dato inválido", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            if (origen == destino)
+            {
+                MessageBox.Show("No se puede crear una ruta de un edificio a sí mismo.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                parqueTecnologico.AgregarArista(origen, destino, distancia);
+                pbGrafo.Refresh(); // Redibuja el grafo con la nueva conexión
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error al crear la ruta: {ex.Message}");
+            }
+
+        }
+
+        private void btnMostrarConexiones_Click(object sender, EventArgs e)
+        {
+
+            lstbResultadosGrafo.Items.Clear();
+            lstbResultadosGrafo.Items.Add("Lista de Conexiones");
+
+            var conexiones = parqueTecnologico.ObtenerTodasLasAristas();
+
+            if (conexiones.Count == 0)
+            {
+                lstbResultadosGrafo.Items.Add("No hay conexiones en el grafo.");
+                return;
+            }
+
+            foreach (var conexion in conexiones)
+            {
+                lstbResultadosGrafo.Items.Add(conexion);
+            }
+
+        }
+
+        private void btnVerificarConexiones_Click(object sender, EventArgs e)
+        {
+            bool esConexo = parqueTecnologico.EsConexo();
+
+            if (esConexo)
+            {
+                MessageBox.Show("El grafo es CONEXO.\n(Es posible llegar desde cualquier edificio a cualquier otro).","Validación",MessageBoxButtons.OK,MessageBoxIcon.Information);
+            }
+            else
+            {
+                MessageBox.Show("El grafo NO es conexo.\n(Existen edificios aislados que no se pueden alcanzar desde otros puntos).","Validación",MessageBoxButtons.OK,MessageBoxIcon.Warning);
+            }
+
+        }
     }
 }
     
