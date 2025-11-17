@@ -11,6 +11,9 @@ using System.Windows.Forms;
 namespace Caso_de_Estudio_Arboles_y_Grafos
 {
     public partial class Form1 : Form
+
+
+       /// Lista para almacenar los nodos resaltados
     {
         private List<TreeNode> nodosRecorridos = new List<TreeNode>(); /// Lista para almacenar los nodos resaltados
         public Form1()
@@ -22,12 +25,6 @@ namespace Caso_de_Estudio_Arboles_y_Grafos
         {
 
         }
-
-        private void jerarquíaOrganizativaToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-
-        }
-
         private void label1_Click(object sender, EventArgs e)
         {
 
@@ -181,6 +178,71 @@ namespace Caso_de_Estudio_Arboles_y_Grafos
 
             }
         }
+
+        private void btnContar_Click(object sender, EventArgs e)
+        {
+            lstbResultados.Items.Clear();
+
+            lstbResultados.Items.Add($"Se ha encontrado un total de {tvArbol.GetNodeCount(true)} nodos");
+        }
+
+
+        private TreeNode BuscarNodo(TreeNodeCollection nodos, string texto)
+        {
+            foreach (TreeNode nodoActual in nodos)
+            {
+                if (nodoActual.Text.Equals(texto, StringComparison.OrdinalIgnoreCase))
+                {
+                    return nodoActual;
+                }
+
+                TreeNode nodoEncontrado = BuscarNodo(nodoActual.Nodes, texto);
+
+                if (nodoEncontrado != null)
+                {
+                    return nodoEncontrado;
+                }
+
+            }
+            return null; // Nodo no encontrado
+        }
+
+
+
+        private void btnBuscar_Click(object sender, EventArgs e)
+        {
+            string elementoABuscar = tbElemento.Text;
+
+            if (string.IsNullOrWhiteSpace(elementoABuscar))
+            {
+                MessageBox.Show("Por favor, ingrese un elemento para buscar.", "Elemento no ingresado", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            TreeNode nodoEncontrado = BuscarNodo(tvArbol.Nodes, elementoABuscar);
+
+            if (nodoEncontrado != null)
+            {
+                tvArbol.SelectedNode = nodoEncontrado;
+                nodoEncontrado.EnsureVisible();
+                tvArbol.Focus();
+                MessageBox.Show($"Elemento '{elementoABuscar}' encontrado.", "Búsqueda exitosa", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            else
+            {
+                MessageBox.Show($"Elemento '{elementoABuscar}' no encontrado.", "Búsqueda fallida", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+        }
+
+
+
+
+
+        ///Pagina Ruta
+        
+
+
+
 
     }
 }
