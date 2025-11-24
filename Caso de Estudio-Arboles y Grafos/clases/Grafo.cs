@@ -11,7 +11,7 @@ namespace Caso_de_Estudio_Arboles_y_Grafos
         public class Arista
         {
             public string Destino { get; }
-            public int Peso { get; } // Distancia
+            public int Peso { get; set; } // Distancia
 
             public Arista(string destino, int peso)
             {
@@ -45,6 +45,38 @@ namespace Caso_de_Estudio_Arboles_y_Grafos
             listaAdyacencia[origen].Add(new Arista(destino, peso));
             listaAdyacencia[destino].Add(new Arista(origen, peso)); // No dirigido
         }
+
+        public void EliminarVertice(string nombreVertice)
+        {
+            // Si el vértice no existe, no hacer nada
+            if (!listaAdyacencia.ContainsKey(nombreVertice))
+            {
+                return;
+            }
+
+            foreach (var otroVertice in listaAdyacencia.Values)
+            {
+                otroVertice.RemoveAll(arista => arista.Destino == nombreVertice);
+            }
+
+            listaAdyacencia.Remove(nombreVertice);
+        }
+
+
+
+
+
+        public void ActualizarPesoArista(string v1, string v2, int nuevoPeso)
+        {
+            // Actualizar en la lista de adyacencia de v1
+            var arista1 = listaAdyacencia[v1].FirstOrDefault(a => a.Destino == v2);
+            if (arista1 != null) arista1.Peso = nuevoPeso;
+
+            // Actualizar en la lista de adyacencia de v2
+            var arista2 = listaAdyacencia[v2].FirstOrDefault(a => a.Destino == v1);
+            if (arista2 != null) arista2.Peso = nuevoPeso;
+        }
+
 
         public Dictionary<string, List<Arista>> ObtenerListaAdyacencia()
         {
@@ -129,7 +161,7 @@ namespace Caso_de_Estudio_Arboles_y_Grafos
 
                     if (!aristasVisitadas.Contains(clave))
                     {
-                        aristas.Add($"{origen.Key} <--> {arista.Destino} ({arista.Peso} mts)");
+                        aristas.Add($"{origen.Key} <--> {arista.Destino} ({arista.Peso} km)");
                         aristasVisitadas.Add(clave);
                     }
                 }
